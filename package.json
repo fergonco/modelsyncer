@@ -1,0 +1,19 @@
+{
+  "name": "modelsyncer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "ModelSyncer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/fergonco/modelsyncer.git"
+  },
+  "author": "Fernando González Cortés",
+  "license": "GPLv3",
+  "bugs": {
+    "url": "https://github.com/fergonco/modelsyncer/issues"
+  },
+  "homepage": "https://github.com/fergonco/modelsyncer#readme"
+}
