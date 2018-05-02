@@ -1,7 +1,4 @@
-/*
-*/
 (function() {
-    
     let root = {};
     let listeners = {};
     let behaviors = {};
@@ -19,95 +16,114 @@
     }
 
     function getExpression(element, attributeName) {
-        return element.getAttribute(attributeName).replace(/\$this/g, "element").replace(/\$value/g, "value").replace(/\$model/g, "root");
+        return element.getAttribute(attributeName)
+            .replace(/\$this/g, "target")
+            .replace(/\$item/g, "item")
+            .replace(/\$value/g, "value")
+            .replace(/\$model/g, "root");
     }
 
-    function applySyncDeep(element, value) {
-        applySync(element, value);
+    function applySyncDeep(element, value, index) {
+        applySync("childsync", element, element, value, index);
         for(let i = 0; i < element.children.length; i++) {
-            applySyncDeep(element.children[i], value);
+            applySyncDeep(element.children[i], value, i);
         }
     }
 
-    function applySync(element, value) {
-        if (element.hasAttribute("sync:text")) {
-            element.innerHTML = eval(getExpression(element, "sync:text"));
+    function applySync(prefix, propertyOwner, target, value, index) {
+        let normalPrefix = prefix + ":";
+        let stylePrefix = prefix + "style:";
+        let item = {
+            value: value,
+            index: index
+        };
+        if (index >=0 && propertyOwner.hasAttribute(normalPrefix + "tmp")) {
+            target.tmp = eval(getExpression(propertyOwner, normalPrefix + "tmp"));
         }
-        if (element.hasAttribute("sync:href")) {
-            element.href = eval(getExpression(element, "sync:href"));
+        if (propertyOwner.hasAttribute(normalPrefix + "text")) {
+            target.innerHTML = eval(getExpression(propertyOwner, normalPrefix + "text"));
         }
-        if (element.hasAttribute("sync:title")) {
-            element.title = eval(getExpression(element, "sync:title"));
+        if (propertyOwner.hasAttribute(normalPrefix + "href")) {
+            target.href = eval(getExpression(propertyOwner, normalPrefix + "href"));
         }
-        if (element.hasAttribute("sync:src")) {
-            element.src = eval(getExpression(element, "sync:src"));
+        if (propertyOwner.hasAttribute(normalPrefix + "title")) {
+            target.title = eval(getExpression(propertyOwner, normalPrefix + "title"));
         }
-        if (element.hasAttribute("sync:disabled")) {
-            element.disabled = eval(getExpression(element, "sync:disabled"));
+        if (propertyOwner.hasAttribute(normalPrefix + "src")) {
+            target.src = eval(getExpression(propertyOwner, normalPrefix + "src"));
         }
-        if (element.hasAttribute("sync:style")) {
-            element.style = eval(getExpression(element, "sync:style"));
+        if (propertyOwner.hasAttribute(normalPrefix + "disabled")) {
+            target.disabled = eval(getExpression(propertyOwner, normalPrefix + "disabled"));
         }
-        if (element.hasAttribute("sync:value")) {
-            element.value = eval(getExpression(element, "sync:value"));
+        if (propertyOwner.hasAttribute(normalPrefix + "style")) {
+            target.style = eval(getExpression(propertyOwner, normalPrefix + "style"));
         }
-        if (element.hasAttribute("sync:checked")) {
-            element.checked = eval(getExpression(element, "sync:checked"));
+        if (propertyOwner.hasAttribute(normalPrefix + "value")) {
+            target.value = eval(getExpression(propertyOwner, normalPrefix + "value"));
         }
-        if (element.hasAttribute("sync:selected")) {
-            element.selected = eval(getExpression(element, "sync:selected"));
+        if (propertyOwner.hasAttribute(normalPrefix + "checked")) {
+            target.checked = eval(getExpression(propertyOwner, normalPrefix + "checked"));
         }
-        if (element.hasAttribute("sync:className")) {
-            element.className = eval(getExpression(element, "sync:className"));
+        if (propertyOwner.hasAttribute(normalPrefix + "className")) {
+            target.className = eval(getExpression(propertyOwner, normalPrefix + "className"));
         }
-        if (element.hasAttribute("sync:scrollTop")) {
-            element.scrollTop = eval(getExpression(element, "sync:scrollTop"));
+        if (propertyOwner.hasAttribute(normalPrefix + "scrollTop")) {
+            target.scrollTop = eval(getExpression(propertyOwner, normalPrefix + "scrollTop"));
         }
-        if (element.hasAttribute("sync:placeholder")) {
-            element.placeholder = eval(getExpression(element, "sync:placeholder"));
+        if (propertyOwner.hasAttribute(normalPrefix + "placeholder")) {
+            target.placeholder = eval(getExpression(propertyOwner, normalPrefix + "placeholder"));
         }
-        if (element.hasAttribute("syncstyle:display")) {
-            element.style.display = eval(getExpression(element, "syncstyle:display"));
+        if (propertyOwner.hasAttribute(stylePrefix + "display")) {
+            target.style.display = eval(getExpression(propertyOwner, stylePrefix + "display"));
         }
-        if (element.hasAttribute("syncstyle:visibility")) {
-            element.style.visibility = eval(getExpression(element, "syncstyle:visibility"));
+        if (propertyOwner.hasAttribute(stylePrefix + "visibility")) {
+            target.style.visibility = eval(getExpression(propertyOwner, stylePrefix + "visibility"));
         }
-        if (element.hasAttribute("syncstyle:toggleClass") && element.hasAttribute("syncstyle:className")) {
-            let className = element.getAttribute("syncstyle:className");
-            if (eval(getExpression(element, "syncstyle:toggleclass")) === true) {
-                element.classList.add(className);
+        if (propertyOwner.hasAttribute(stylePrefix + "toggleClass") && propertyOwner.hasAttribute(stylePrefix + "className")) {
+            let className = propertyOwner.getAttribute(stylePrefix + "className");
+            if (eval(getExpression(propertyOwner, stylePrefix + "toggleclass")) === true) {
+                target.classList.add(className);
             } else {
-                element.classList.remove(className);
+                target.classList.remove(className);
             }
         }
-        if (element.hasAttribute("sync:children")) {
+        if (propertyOwner.hasAttribute(normalPrefix + "children")) {
+            let template = null;
             // Remove all elements except the template
-            let template = element.firstElementChild;
+            if (propertyOwner.hasAttribute(normalPrefix + "replace")) {
+                template = target;
+                target = target.parentElement;
+            } else {
+                template = target.firstElementChild;
+            }
             while (template.nextSibling) {
-                element.removeChild(template.nextSibling);
+                target.removeChild(template.nextSibling);
             }
 
-            for (let i = 0; i < value.length; i++) {
-                let child = template.cloneNode(true);
-                child.style.display = '';
-                applySyncDeep(child, value[i]);
-                element.appendChild(child);
-            }
+            let lastInsert = template;
+            if (value instanceof Array) {
+                for (let i = 0; i < value.length; i++) {
+                    let child = template.cloneNode(true);
+                    child.style.display = '';
+                    applySyncDeep(child, value[i], i);
+                    target.insertBefore(child, lastInsert.nextSibling);
+                }
 
-            if (element.hasAttribute("sync:behaviors")) {
-                let syncBehaviors = element.getAttribute("sync:behaviors");
-                let behaviorNames = syncBehaviors.split(",");
-                for (let i =0; i < behaviorNames.length; i++) {
-                    behaviors[behaviorNames[i]](element);
+                if (propertyOwner.hasAttribute(normalPrefix + "behaviors")) {
+                    let syncBehaviors = propertyOwner.getAttribute(normalPrefix + "behaviors");
+                    let behaviorNames = syncBehaviors.split(",");
+                    for (let i =0; i < behaviorNames.length; i++) {
+                        behaviors[behaviorNames[i]](target);
+                    }
                 }
             }
         }
 
     }
 
-    function createListener(element) {
+    function createListener(propertyOwner, element) {
         return function(value){
-            applySync(element, value);
+            applySync("sync", propertyOwner, element, value);
         };
     }
 
@@ -119,30 +135,37 @@
             return eval(expression);
         }, false);
     };
-    let all = document.querySelectorAll("[sync\\:path]");
-    let initializing = [];
-    for (let i = 0; i < all.length; i++) {
-        let target = all[i];
-        let path = target.getAttribute("sync:path");
-        let callback = createListener(target);
-        listen(path, callback);
+    function process(element, firstExecution) {
+        let all = element.querySelectorAll("[sync\\:path]");
+        let initializing = [];
+        for (let i = 0; i < all.length; i++) {
+            let element = all[i];
+            let target = element;
+            while (target.hasAttribute("sync:next")) {
+                target = target.nextElementSibling;
+            }
+            let callback = createListener(element, target);
+            let path = element.getAttribute("sync:path");
+            listen(path, callback);
 
-        if (target.hasAttribute("sync:output")) {
-            let eventName = target.getAttribute("sync:on");
-            target.addEventListener(eventName, function() {
-                updateModel(path, target, target.getAttribute("sync:output"));
-            });
-            initializing.push(target);
-        } else if (target.hasAttribute("sync:init")) {
-            initializing.push(target);
+            if (element.hasAttribute("sync:output")) {
+                let eventName = element.getAttribute("sync:on");
+                element.addEventListener(eventName, function() {
+                    updateModel(path, element, element.getAttribute("sync:output"));
+                });
+            }
+            if (element.hasAttribute("sync:init")) {
+                initializing.push(element);
+            }
+        }
+        for (let i = 0; i < initializing.length; i++) {
+            let element = initializing[i];
+            let path = element.getAttribute("sync:path");
+            let initExpression = element.hasAttribute("sync:init")? element.getAttribute("sync:init") : element.getAttribute("sync:output");
+            updateModel(path, element, initExpression);
         }
     }
-    for (let i = 0; i < initializing.length; i++) {
-        let target = initializing[i];
-        let path = target.getAttribute("sync:path");
-        let initExpression = target.hasAttribute("sync:init")? target.getAttribute("sync:init") : target.getAttribute("sync:output");
-        updateModel(path, target, initExpression);
-    }
+    process(document.documentElement);
 
     function touch(path) {
         let value = get(path);
@@ -196,7 +219,7 @@
                     let relativePath = callbacks[j].relativePath;
                     if (relativePath != null) {
                         let parts = relativePath.split(".");
-                        for(k = 0; k < parts.length; k++) {
+                        for(let k = 0; k < parts.length; k++) {
                             value = value != null && value != undefined? value[parts[k]]:undefined;
                         }
                     }
@@ -228,8 +251,12 @@
     function get(path, value) {
         let parts = path.split(".");
         let parent = getSubmodel(root, parts);
-        let propertyName = parts[parts.length - 1];
-        return parent[propertyName];
+        if (parent != null) {
+            let propertyName = parts[parts.length - 1];
+            return parent[propertyName];
+        } else {
+            return undefined;
+        }
     }
 
     function listen(path, callback) {
@@ -239,10 +266,9 @@
         for(let i = 0; i < parts.length; i++) {
             incrementalPath += separator + parts[i];
             separator = ".";
+            let relativePath = null;
             if (incrementalPath != path) {
                 relativePath = path.substring(incrementalPath.length + 1);
-            } else {
-                relativePath = null;
             }
             addListener(incrementalPath, relativePath, callback);
         }
@@ -258,7 +284,7 @@
             callback: callback
         });
     }
-    
+
     function removeListener(path, callback) {
         let parts = path.split(".");
         let incrementalPath = "";
@@ -280,6 +306,8 @@
         behaviors[name] = behavior;
     }
 
+    registerBehavior("syncer", process);
+
     di["syncer"] = {
         merge:merge,
         set:set,
@@ -290,4 +318,14 @@
         removeListener:removeListener,
         registerBehavior:registerBehavior
     }
+//    export {
+//        merge,
+//        set,
+//        update,
+//        touch,
+//        get,
+//        listen,
+//        removeListener,
+//        registerBehavior
+//    };
 })();
