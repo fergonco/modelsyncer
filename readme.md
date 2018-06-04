@@ -55,6 +55,8 @@ If some attribute has to be set at the moment of generation, it is possible to u
 
 The childsync attributes are evaluated only at generation time, this is, when in the data tree, the value pointed by the sync:path of the element having the *sync:children* attribute is changed.
 
+If only *childsync* attributes are used it is not necessary to include a *sync:path* attribute and *$value will refer to the data element being used to generate the DOM element.
+
 ## Sync expressions
 
 The values of *sync* attributes can use these variables:
