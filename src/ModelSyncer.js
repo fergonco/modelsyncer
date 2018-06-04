@@ -73,6 +73,9 @@
         if (propertyOwner.hasAttribute(normalPrefix + "placeholder")) {
             target.placeholder = eval(getExpression(propertyOwner, normalPrefix + "placeholder"));
         }
+        if (propertyOwner.hasAttribute(stylePrefix + "font-size")) {
+            target.style["font-size"] = eval(getExpression(propertyOwner, stylePrefix + "font-size"));
+        }
         if (propertyOwner.hasAttribute(stylePrefix + "display")) {
             target.style.display = eval(getExpression(propertyOwner, stylePrefix + "display"));
         }
@@ -90,7 +93,7 @@
         if (propertyOwner.hasAttribute(normalPrefix + "children")) {
             let template = null;
             // Remove all elements except the template
-            if (propertyOwner.hasAttribute(normalPrefix + "replace")) {
+            if (propertyOwner.hasAttribute(normalPrefix + "samelevel")) {
                 template = target;
                 target = target.parentElement;
             } else {
@@ -107,6 +110,7 @@
                     child.style.display = '';
                     applySyncDeep(child, value[i], i);
                     target.insertBefore(child, lastInsert.nextSibling);
+                    lastInsert = child;
                 }
 
                 if (propertyOwner.hasAttribute(normalPrefix + "behaviors")) {
@@ -164,9 +168,14 @@
             let initExpression = element.hasAttribute("sync:init")? element.getAttribute("sync:init") : element.getAttribute("sync:output");
             updateModel(path, element, initExpression);
         }
+        let syncNexts = element.querySelectorAll("[sync\\:next]");
+        for (let i = 0; i < syncNexts.length; i++) {
+            syncNexts[i].style.display = "none";
+        }
+
     }
     process(document.documentElement);
-
+    
     function touch(path) {
         let value = get(path);
         if (value == null) {
