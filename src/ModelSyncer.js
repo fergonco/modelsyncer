@@ -25,7 +25,7 @@ function getExpression(element, attributeName) {
 function applySyncDeep(element, value, index) {
     applySync("childsync", element, element, value, index);
     for(let i = 0; i < element.children.length; i++) {
-        applySyncDeep(element.children[i], value, i);
+        applySyncDeep(element.children[i], value, index);
     }
 }
 
@@ -107,19 +107,31 @@ function applySync(prefix, propertyOwner, target, value, index) {
 
         let lastInsert = template;
         if (value instanceof Array) {
+            let behaviorNames = [];
+            if (propertyOwner.hasAttribute(normalPrefix + "behaviors")) {
+                let syncBehaviors = propertyOwner.getAttribute(normalPrefix + "behaviors");
+                behaviorNames = syncBehaviors.split(",");
+            }
             for (let i = 0; i < value.length; i++) {
                 let child = template.cloneNode(true);
+                // Remove the attributes if the template is the propertyOwner
+                // If syncer is applied later it would add a new listener for
+                // the collection pointed by sync:children
+                if (template == propertyOwner) {
+                    let attributeNames = template.getAttributeNames();
+                    for (let j = 0; j < attributeNames.length; j++) {
+                        if (attributeNames[j].startsWith("sync:")) {
+                            child.removeAttribute(attributeNames[j]);
+                        }
+                    }
+                }
                 child.style.display = '';
                 applySyncDeep(child, value[i], i);
                 target.insertBefore(child, lastInsert.nextSibling);
-                lastInsert = child;
-            }
-            if (propertyOwner.hasAttribute(normalPrefix + "behaviors")) {
-                let syncBehaviors = propertyOwner.getAttribute(normalPrefix + "behaviors");
-                let behaviorNames = syncBehaviors.split(",");
                 for (let i =0; i < behaviorNames.length; i++) {
-                    behaviors[behaviorNames[i]](target);
+                    behaviors[behaviorNames[i]](child);
                 }
+                lastInsert = child;
             }
         }
     }
@@ -139,10 +151,14 @@ let updateModel = function(path, component, expression) {
         return eval(expression);
     }, false);
 };
-function process(element, firstExecution) {
-    let all = element.querySelectorAll("[sync\\:path]");
+function process(element, excludeSelf) {
+    let all = [];
+    if (!(excludeSelf === true) && element.hasAttribute("sync:path")) {
+        all = [element];
+    }
+    all = all.concat(Array.from(element.querySelectorAll("[sync\\:path]")));
     let initializing = [];
-    for (let i = 0; i < all.length; i++) {
+    for(let i = 0; i < all.length; i++) {
         let element = all[i];
         let target = element;
         while (target.hasAttribute("sync:next")) {
@@ -174,7 +190,7 @@ function process(element, firstExecution) {
     }
 
 }
-process(document.documentElement);
+process(document.documentElement, true);
 
 function touch(path) {
     let value = get(path);
@@ -220,7 +236,8 @@ function doSet(path, valueGetter, merge) {
         } else {
             parent[propertyName] = newValue;
         }
-        console.log(path + ": " + previousValue + "->" + newValue);
+        let indent = new Error().stack.split('\n').length;
+        console.log(" ".repeat(indent) + path + ": " + previousValue + "->" + newValue);
         let callbacks = listeners[path];
         if (callbacks) {
             // Notify children of this property, already registered as listeners
