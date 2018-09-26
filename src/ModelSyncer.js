@@ -63,6 +63,9 @@ function applySync(prefix, propertyOwner, target, value, index) {
     if (propertyOwner.hasAttribute(normalPrefix + "checked")) {
         target.checked = eval(getExpression(propertyOwner, normalPrefix + "checked"));
     }
+    if (propertyOwner.hasAttribute(normalPrefix + "selected")) {
+        target.selected = eval(getExpression(propertyOwner, normalPrefix + "selected"));
+    }
     if (propertyOwner.hasAttribute(normalPrefix + "className")) {
         target.className = eval(getExpression(propertyOwner, normalPrefix + "className"));
     }
@@ -111,7 +114,6 @@ function applySync(prefix, propertyOwner, target, value, index) {
                 target.insertBefore(child, lastInsert.nextSibling);
                 lastInsert = child;
             }
-
             if (propertyOwner.hasAttribute(normalPrefix + "behaviors")) {
                 let syncBehaviors = propertyOwner.getAttribute(normalPrefix + "behaviors");
                 let behaviorNames = syncBehaviors.split(",");
@@ -121,7 +123,6 @@ function applySync(prefix, propertyOwner, target, value, index) {
             }
         }
     }
-
 }
 
 function createListener(propertyOwner, element) {
@@ -219,24 +220,25 @@ function doSet(path, valueGetter, merge) {
         } else {
             parent[propertyName] = newValue;
         }
+        console.log(path + ": " + previousValue + "->" + newValue);
         let callbacks = listeners[path];
         if (callbacks) {
             // Notify children of this property, already registered as listeners
-            for(let j = 0; j < callbacks.length; j++) {
+            let callbacksSnapshot = callbacks.slice();
+            for(let j = 0; j < callbacksSnapshot.length; j++) {
                 let value = parent[propertyName];
-                let relativePath = callbacks[j].relativePath;
+                let relativePath = callbacksSnapshot[j].relativePath;
                 if (relativePath != null) {
                     let parts = relativePath.split(".");
                     for(let k = 0; k < parts.length; k++) {
                         value = value != null && value != undefined? value[parts[k]]:undefined;
                     }
                 }
-                callbacks[j].callback(value);
+                callbacksSnapshot[j].callback(value, previousValue);
             }
             notifyParents(parts);
         }
     }
-    console.log(path + ": " + previousValue + "->" + newValue);
 }
 
 function notifyParents(parts) {
