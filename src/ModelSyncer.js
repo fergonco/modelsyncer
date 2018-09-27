@@ -170,7 +170,7 @@ function process(element, excludeSelf) {
 
         if (element.hasAttribute("sync:output")) {
             let eventName = element.getAttribute("sync:on");
-            element.addEventListener(eventName, function() {
+            target.addEventListener(eventName, function() {
                 updateModel(path, element, element.getAttribute("sync:output"));
             });
         }
