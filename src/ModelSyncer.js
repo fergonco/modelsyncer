@@ -24,12 +24,19 @@ function getExpression(element, attributeName) {
 
 function applySyncDeep(element, value, index) {
     applySync("childsync", element, element, value, index);
-    for(let i = 0; i < element.children.length; i++) {
-        applySyncDeep(element.children[i], value, index);
+    if (!element.hasAttribute("sync:children")) {
+        for(let i = 0; i < element.children.length; i++) {
+            let child = element.children[i];
+            if (child.hasAttribute("sync:children") && child.getAttribute("sync:samelevel") === "true") {
+                break;
+            }
+            applySyncDeep(element.children[i], value, index);
+        }
     }
 }
 
 function applySync(prefix, propertyOwner, target, value, index) {
+    try {
     let normalPrefix = prefix + ":";
     let stylePrefix = prefix + "style:";
     let item = {
@@ -106,13 +113,17 @@ function applySync(prefix, propertyOwner, target, value, index) {
         }
 
         let lastInsert = template;
-        if (value instanceof Array) {
+        let array = eval(getExpression(propertyOwner, normalPrefix + "children"));
+        if (array instanceof Array) {
+            if (propertyOwner.hasAttribute("test")) {
+                console.log("Expanding");
+            }
             let behaviorNames = [];
             if (propertyOwner.hasAttribute(normalPrefix + "behaviors")) {
                 let syncBehaviors = propertyOwner.getAttribute(normalPrefix + "behaviors");
                 behaviorNames = syncBehaviors.split(",");
             }
-            for (let i = 0; i < value.length; i++) {
+            for (let i = 0; i < array.length; i++) {
                 let child = template.cloneNode(true);
                 // Remove the attributes if the template is the propertyOwner
                 // If syncer is applied later it would add a new listener for
@@ -126,7 +137,7 @@ function applySync(prefix, propertyOwner, target, value, index) {
                     }
                 }
                 child.style.display = '';
-                applySyncDeep(child, value[i], i);
+                applySyncDeep(child, array[i], i);
                 target.insertBefore(child, lastInsert.nextSibling);
                 for (let i =0; i < behaviorNames.length; i++) {
                     behaviors[behaviorNames[i]](child);
@@ -134,6 +145,10 @@ function applySync(prefix, propertyOwner, target, value, index) {
                 lastInsert = child;
             }
         }
+    }
+    }catch(error) {
+        console.error(propertyOwner);
+        throw error;
     }
 }
 
@@ -171,7 +186,7 @@ function process(element, excludeSelf) {
         if (element.hasAttribute("sync:output")) {
             let eventName = element.getAttribute("sync:on");
             target.addEventListener(eventName, function() {
-                updateModel(path, element, element.getAttribute("sync:output"));
+                updateModel(path, target, element.getAttribute("sync:output"));
             });
         }
         if (element.hasAttribute("sync:init")) {
@@ -347,3 +362,4 @@ let syncer = {
 };
 
 export default syncer;
+
