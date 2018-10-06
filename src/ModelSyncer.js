@@ -1,6 +1,7 @@
 let root = {};
 let listeners = {};
 let behaviors = {};
+let log = false;
 
 function getSubmodel(root, parts) {
     let point = root;
@@ -115,9 +116,6 @@ function applySync(prefix, propertyOwner, target, value, index) {
         let lastInsert = template;
         let array = eval(getExpression(propertyOwner, normalPrefix + "children"));
         if (array instanceof Array) {
-            if (propertyOwner.hasAttribute("test")) {
-                console.log("Expanding");
-            }
             let behaviorNames = [];
             if (propertyOwner.hasAttribute(normalPrefix + "behaviors")) {
                 let syncBehaviors = propertyOwner.getAttribute(normalPrefix + "behaviors");
@@ -252,7 +250,7 @@ function doSet(path, valueGetter, merge) {
             parent[propertyName] = newValue;
         }
         let indent = new Error().stack.split('\n').length;
-        console.log(" ".repeat(indent) + path + ": " + previousValue + "->" + newValue);
+        if (log) console.log(" ".repeat(indent) + path + ": " + previousValue + "->" + newValue);
         let callbacks = listeners[path];
         if (callbacks) {
             // Notify children of this property, already registered as listeners
@@ -348,6 +346,10 @@ function registerBehavior(name, behavior) {
     behaviors[name] = behavior;
 }
 
+function setLogEnabled(enabled) {
+    log = enabled;
+}
+
 registerBehavior("syncer", process);
 
 let syncer = {
@@ -358,8 +360,10 @@ let syncer = {
     get,
     listen,
     removeListener,
-    registerBehavior
+    registerBehavior,
+    setLogEnabled
 };
 
 export default syncer;
 
+window.syncer = syncer;
